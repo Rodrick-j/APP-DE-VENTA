@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { LogBox } from 'react-native'
+import { LogBox, Platform, View } from 'react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import AsyncStorage from '@react-native-async-storage/async-storage'
