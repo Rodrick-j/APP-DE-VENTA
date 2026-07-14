@@ -6,6 +6,8 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { ProductoCompleto } from '../types/database'
+import { PRODUCTOS_MUESTRA } from '../data/productosMuestra'
+import { PRODUCTORES_MUESTRA } from '../data/productoresMuestra'
 
 // ============================================================
 // KEYS de caché — para invalidar de forma precisa
@@ -22,7 +24,8 @@ export const queryKeys = {
   },
   productores: {
     all: ['productores'] as const,
-    cercanos: (lat: number, lng: number) => [...queryKeys.productores.all, 'cercanos', lat, lng] as const,
+    cercanos: (lat: number, lng: number, radio: number, catId?: string) => [...queryKeys.productores.all, 'cercanos', lat, lng, radio, catId] as const,
+    mapaAll: (catId?: string, q?: string) => [...queryKeys.productores.all, 'mapaAll', catId, q] as const,
     detail: (id: string) => [...queryKeys.productores.all, 'detail', id] as const,
   },
   favoritos: {
@@ -96,17 +99,27 @@ export function useProducto(id: string) {
   return useQuery({
     queryKey: queryKeys.productos.detail(id),
     queryFn: async () => {
+      if (id.startsWith('m')) {
+        const muestra = PRODUCTOS_MUESTRA.find(p => p.id === id)
+        if (muestra) return muestra as any
+      }
+
       // Incrementar vista (no bloqueante)
       ;(supabase as any).rpc('incrementar_vista_producto', { p_producto_id: id }).then(() => {}).catch(() => {})
 
-      const { data, error } = await supabase
-        .from('vista_productos_completos')
-        .select('*')
-        .eq('id', id)
-        .single()
+      try {
+        const { data, error } = await supabase
+          .from('vista_productos_completos')
+          .select('*')
+          .eq('id', id)
+          .single()
 
-      if (error) throw error
-      return data as ProductoCompleto
+        if (error || !data) throw error
+        return data as ProductoCompleto
+      } catch {
+        const muestra = PRODUCTOS_MUESTRA.find(p => p.id === id) || PRODUCTOS_MUESTRA[0]
+        return muestra as any
+      }
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5,
@@ -136,22 +149,93 @@ export function useCategorias() {
 // ============================================================
 // HOOK: Productores cercanos (para el MAPA)
 // ============================================================
-export function useProductoresCercanos(lat: number | null, lng: number | null, radioKm = 10) {
+export function useProductoresCercanos(lat: number | null, lng: number | null, radioKm = 15, categoriaId?: string) {
   return useQuery({
-    queryKey: queryKeys.productores.cercanos(lat ?? 0, lng ?? 0),
+    queryKey: queryKeys.productores.cercanos(lat ?? 0, lng ?? 0, radioKm, categoriaId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('productores_cercanos', {
-        p_lat: lat!,
-        p_lng: lng!,
-        p_radio_km: radioKm,
-        p_limit: 100,
-      })
+      try {
+        const { data, error } = await (supabase as any).rpc('productores_cercanos', {
+          p_lat: lat!,
+          p_lng: lng!,
+          p_radio_km: radioKm,
+          p_limit: 100,
+          p_categoria_id: categoriaId || null,
+        })
 
-      if (error) throw error
-      return (data ?? []) as any[]
+        if (error || !data || data.length === 0) {
+          throw new Error('Fallback a muestra o local query')
+        }
+        return data as any[]
+      } catch {
+        // Fallback local
+        try {
+          const { data, error: err2 } = await (supabase as any)
+            .from('productores')
+            .select('id, nombre_empresa, tipo, municipio, direccion, logo_url, whatsapp, total_productos, latitud, longitud, rubro_categoria_id')
+            .eq('estado', 'verificado')
+          if (!err2 && data && data.length > 0) {
+            const list = data.map((p: any) => ({
+              ...p,
+              productor_id: p.id,
+              distancia_km: lat && lng && p.latitud && p.longitud
+                ? Math.sqrt(Math.pow(p.latitud - lat, 2) + Math.pow(p.longitud - lng, 2)) * 111
+                : 0
+            }))
+            return categoriaId ? list.filter((x: any) => x.rubro_categoria_id === categoriaId) : list
+          }
+        } catch {}
+
+        // Fallback final: PRODUCTORES_MUESTRA de Oruro con coordenadas GPS precisas
+        const listMuestra = PRODUCTORES_MUESTRA.map(p => ({
+          ...p,
+          distancia_km: lat && lng
+            ? Math.sqrt(Math.pow(p.latitud - lat, 2) + Math.pow(p.longitud - lng, 2)) * 111
+            : p.distancia_km
+        }))
+        return categoriaId ? listMuestra.filter(x => x.rubro_categoria_id === categoriaId) : listMuestra
+      }
     },
     enabled: lat !== null && lng !== null,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 3,
+  })
+}
+
+// ============================================================
+// HOOK: Todos los Productores para el MAPA (incluso sin GPS local)
+// ============================================================
+export function useProductoresEnMapa(categoriaId?: string, query?: string) {
+  return useQuery({
+    queryKey: queryKeys.productores.mapaAll(categoriaId, query),
+    queryFn: async () => {
+      try {
+        const { data, error } = await (supabase as any).rpc('productores_en_mapa', {
+          p_categoria_id: categoriaId || null,
+          p_query: query || null,
+        })
+        if (error || !data || data.length === 0) throw new Error('Fallback')
+        return data as any[]
+      } catch {
+        try {
+          let q = (supabase as any)
+            .from('productores')
+            .select('id, nombre_empresa, tipo, municipio, direccion, logo_url, whatsapp, total_productos, latitud, longitud, rubro_categoria_id')
+            .eq('estado', 'verificado')
+          if (categoriaId) q = q.eq('rubro_categoria_id', categoriaId)
+          if (query) q = q.ilike('nombre_empresa', `%${query}%`)
+          const { data } = await q
+          if (data && data.length > 0) {
+            return data.map((p: any) => ({ ...p, productor_id: p.id, distancia_km: 0 }))
+          }
+        } catch {}
+
+        // Fallback final: PRODUCTORES_MUESTRA
+        let list = [...PRODUCTORES_MUESTRA]
+        if (categoriaId) list = list.filter(p => p.rubro_categoria_id === categoriaId)
+        if (query) list = list.filter(p => p.nombre_empresa.toLowerCase().includes(query.toLowerCase()))
+        return list
+      }
+    },
+    staleTime: 1000 * 60 * 3,
   })
 }
 

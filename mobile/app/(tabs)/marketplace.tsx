@@ -6,7 +6,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, Image, ActivityIndicator, RefreshControl,
-  ScrollView, StatusBar,
+  ScrollView, StatusBar, Platform, useWindowDimensions,
 } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -30,6 +30,7 @@ import {
 import { useAuthStore } from '../../stores/authStore'
 import { colors, typography, spacing, radius, shadows, gradients } from '../../lib/theme'
 import { Avatar, Badge, SectionHeader, Skeleton } from '../../components/ui'
+import { PRODUCTOS_MUESTRA } from '../../data/productosMuestra'
 
 const categoriasIconos: Record<string, string> = {
   'lacteos': '🧀', 'carnes': '🥩', 'frutas-verduras': '🍎',
@@ -38,14 +39,6 @@ const categoriasIconos: Record<string, string> = {
   'cuero-calzado': '👞', 'flores-plantas': '🌸', 'madera': '🪵', 'otros': '📦',
 }
 
-const PRODUCTOS_MUESTRA = [
-  { id: 'm1', nombre: 'Quinua Real Orgánica Blanca Premium (Bolsa 1Kg)', precio: 28.50, imagen_principal: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Granos y Cereales', categoria_slug: 'granos-cereales', nombre_empresa: 'Asociación APQUISA — Salinas', destacado: true },
-  { id: 'm2', nombre: 'Charque de Llama Deshidratado Especial (500g)', precio: 45.00, imagen_principal: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Carnes y Derivados', categoria_slug: 'carnes', nombre_empresa: 'Productores Turco — Oruro', destacado: true },
-  { id: 'm3', nombre: 'Queso Fresco Artesanal Challapata (Pieza Grande)', precio: 32.00, imagen_principal: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Lácteos y Derivados', categoria_slug: 'lacteos', nombre_empresa: 'Lácteos Challapata MYPE', destacado: true },
-  { id: 'm4', nombre: 'Poncho Artesanal de Alpaca 100% Nativa', precio: 250.00, imagen_principal: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Textiles y Artesanías', categoria_slug: 'textiles', nombre_empresa: 'Artesanías Curahuara de Carangas', destacado: false },
-  { id: 'm5', nombre: 'Miel de Abeja Pura Orgánica del Valle (500ml)', precio: 38.00, imagen_principal: 'https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Alimentos Procesados', categoria_slug: 'alimentos-procesados', nombre_empresa: 'Agroecológica Soracachi', destacado: false },
-  { id: 'm6', nombre: 'Infusión de Wira Wira y Eucalipto (Caja 25u)', precio: 15.00, imagen_principal: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80', categoria_nombre: 'Plantas Medicinales', categoria_slug: 'plantas-medicinales', nombre_empresa: 'Medicina Natural Oruro', destacado: false },
-]
 
 const HERO_SLIDES = [
   { id: 'h1', titulo: 'Productos 100% Bolivianos', subtitulo: 'Directamente del campo a tu mesa', gradient: gradients.hero as [string, string], emoji: '🏔️' },
@@ -57,6 +50,10 @@ const AnimatedTouchable = Animated.createAnimatedComponent(View)
 
 export default function MarketplaceScreen() {
   const { user, perfil } = useAuthStore()
+  const { width: windowWidth } = useWindowDimensions()
+  const numCols = Platform.OS === 'web'
+    ? (windowWidth > 1300 ? 5 : windowWidth > 1000 ? 4 : windowWidth > 640 ? 3 : 2)
+    : 2
   const [busqueda, setBusqueda] = useState('')
   const [query, setQuery] = useState('')
   const [categoriaId, setCategoriaId] = useState<string | undefined>()
@@ -80,10 +77,11 @@ export default function MarketplaceScreen() {
       false
     )
     const interval = setInterval(() => {
-      heroOpacity.value = withTiming(0, { duration: 200 }, () => {
+      heroOpacity.value = withTiming(0, { duration: 200 })
+      setTimeout(() => {
         setHeroIdx(prev => (prev + 1) % HERO_SLIDES.length)
         heroOpacity.value = withTiming(1, { duration: 400 })
-      })
+      }, 200)
     }, 4200)
     return () => clearInterval(interval)
   }, [])
@@ -120,6 +118,55 @@ export default function MarketplaceScreen() {
 
   const ListHeader = (
     <View>
+      {/* ALIBABA TOP NAV BAR (WEB & DESKTOP) */}
+      {Platform.OS === 'web' && (
+        <View style={styles.alibabaTopNav}>
+          <View style={styles.alibabaTopLeft}>
+            <TouchableOpacity style={styles.alibabaTopLinkWrap}>
+              <Ionicons name="menu-outline" size={16} color="#374151" />
+              <Text style={styles.alibabaTopLinkTxtBold}>Todas las categorías</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.alibabaTopLinkWrap}>
+              <Ionicons name="shield-checkmark" size={14} color="#1a7a4a" />
+              <Text style={styles.alibabaTopLinkTxt}>Fabricantes verificados</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.alibabaTopLinkWrap}>
+              <Ionicons name="shield" size={14} color="#0066ff" />
+              <Text style={styles.alibabaTopLinkTxt}>Protecciones del pedido</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.alibabaTopLinkWrap, { backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#86efac' }]}
+              onPress={() => router.push('/productor/registrar')}
+            >
+              <Ionicons name="business" size={15} color="#15803d" />
+              <Text style={[styles.alibabaTopLinkTxtBold, { color: '#15803d' }]}>✨ Vender en Oruro (Registro Productor)</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.alibabaTopRight}>
+            <View style={styles.alibabaTopFlagRow}>
+              <Text style={{ fontSize: 13 }}>🇧🇴</Text>
+              <Text style={styles.alibabaTopLinkTxt}>Entregar en: <Text style={{ fontWeight: '700', color: '#111827' }}>Oruro, BO</Text></Text>
+            </View>
+            <Text style={styles.alibabaTopLinkTxt}>Español-BOB</Text>
+            <TouchableOpacity style={styles.alibabaTopLinkWrap} onPress={() => router.push('/(tabs)/favoritos')}>
+              <Ionicons name="cart-outline" size={16} color="#374151" />
+              <Text style={styles.alibabaTopLinkTxt}>Carrito</Text>
+            </TouchableOpacity>
+            {!user ? (
+              <TouchableOpacity style={styles.alibabaTopAuthBtn} onPress={() => router.push('/(auth)/login')}>
+                <Ionicons name="person-circle-outline" size={16} color="#ffffff" />
+                <Text style={styles.alibabaTopAuthTxt}>Iniciar sesión / Crear cuenta</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.alibabaTopAuthBtn} onPress={() => router.push('/(tabs)/perfil')}>
+                <Ionicons name="person-circle-outline" size={16} color="#ffffff" />
+                <Text style={styles.alibabaTopAuthTxt}>Mi Cuenta ({perfil?.nombre_completo?.split(' ')[0] ?? 'Oruro'})</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* HERO SLIDER */}
       <Animated.View style={heroAnimatedStyle}>
         <LinearGradient colors={slide.gradient} style={styles.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
@@ -185,6 +232,43 @@ export default function MarketplaceScreen() {
         </View>
       </View>
 
+      {/* BANNER OFICIAL DE ADHESIÓN PARA PRODUCTORES B2B */}
+      <View style={styles.productorBannerBox}>
+        <LinearGradient
+          colors={['#14532d', '#1a7a4a', '#15803d']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.productorBannerGrad}
+        >
+          <View style={styles.productorBannerHeader}>
+            <View style={styles.productorBannerTag}>
+              <Text style={styles.productorBannerTagTxt}>⚡ CONVOCATORIA OFICIAL GOBERNACIÓN</Text>
+            </View>
+            <Text style={styles.productorBannerEmoji}>🏢</Text>
+          </View>
+          <Text style={styles.productorBannerTitle}>¿Eres Productor, Artesano o MYPE de Oruro?</Text>
+          <Text style={styles.productorBannerSub}>
+            Regístrate gratis con tu GPS oficial, obtén el sello "Consume lo Nuestro" y publica tus productos directo a miles de compradores y mayoristas sin intermediarios.
+          </Text>
+          <View style={styles.productorBannerBtns}>
+            <TouchableOpacity
+              style={styles.productorBtnAction}
+              onPress={() => router.push('/productor/registrar')}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.productorBtnActionTxt}>🚀 Registrar mi Empresa y GPS Ahora →</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.productorBtnInfo}
+              onPress={() => router.push('/productor/registrar')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.productorBtnInfoTxt}>📋 Ver Requisitos</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
+
       {/* ESTADISTICAS */}
       <View style={styles.statsRow}>
         {[
@@ -242,9 +326,10 @@ export default function MarketplaceScreen() {
         <>{ListHeader}<EmptyStateComponent query={query} /></>
       ) : (
         <FlatList
+          key={`alibaba-grid-${numCols}`}
           data={productos}
           keyExtractor={item => item.id}
-          numColumns={2}
+          numColumns={numCols}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.lista}
           ListHeaderComponent={ListHeader}
@@ -273,44 +358,82 @@ export default function MarketplaceScreen() {
 const CardVertical = React.memo(function CardVertical({ producto, esFavorito, onFavorito, onPress, index }: any) {
   const scale = useSharedValue(1)
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }))
+  const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  })
 
   const tapGesture = Gesture.Tap()
     .onBegin(() => {
-      scale.value = withSpring(0.96, { damping: 15, stiffness: 400 })
+      'worklet';
+      scale.value = withSpring(0.97, { damping: 15, stiffness: 400 })
     })
     .onFinalize(() => {
+      'worklet';
       scale.value = withSpring(1, { damping: 15, stiffness: 400 })
     })
+
+  const precioMin = producto.precio ? producto.precio : 25.00
+  const precioMax = (precioMin * 1.68).toFixed(2)
+  const moq = producto.unidad ? `1 ${producto.unidad}` : '1 unidad'
+  const vendidos = (index * 42 + 38).toLocaleString()
+  const anios = (index % 5) + 1
 
   return (
     <GestureDetector gesture={tapGesture}>
       <Animated.View style={[styles.card, animatedStyle]}>
-        <TouchableOpacity onPress={onPress} activeOpacity={1}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.94} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* HEADER ALIBABA B2B (Arriba de la imagen) */}
+          <View style={styles.cardHeaderAlibaba}>
+            <Text style={styles.priceRangeTxt}>Bs {precioMin.toFixed(2)} - {precioMax}</Text>
+            <View style={styles.moqSoldRow}>
+              <Text style={styles.moqTxt}>MOQ: {moq}</Text>
+              <Text style={styles.soldTxt}>{vendidos} vendidos</Text>
+            </View>
+            <View style={styles.verifiedRow}>
+              <View style={styles.verifiedIconBadge}>
+                <Ionicons name="checkmark-sharp" size={9} color="#fff" />
+              </View>
+              <Text style={styles.verifiedTxt}>Verified</Text>
+              <Text style={styles.yearsCountryTxt}> · {anios} {anios === 1 ? 'año' : 'años'} · Oruro, BO</Text>
+            </View>
+          </View>
+
+          {/* CONTENEDOR IMAGEN CUADRADA ALIBABA */}
           <View style={styles.cardImgWrap}>
             {producto.imagen_principal
               ? <Image source={{ uri: producto.imagen_principal }} style={styles.cardImg} resizeMode="cover" />
-              : <View style={styles.cardImgEmpty}><Text style={{ fontSize: 40 }}>{categoriasIconos[producto.categoria_slug] ?? '🏷️'}</Text></View>
+              : <View style={styles.cardImgEmpty}><Text style={{ fontSize: 44 }}>{categoriasIconos[producto.categoria_slug] ?? '🏷️'}</Text></View>
             }
-            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={styles.cardImgGrad} />
-            <View style={styles.cardPrecioFloat}>
-              <Text style={styles.cardPrecioTxt}>{producto.precio ? `Bs. ${producto.precio.toFixed(2)}` : 'Consultar'}</Text>
+            {/* Botón Lente/Zoom inferior izquierdo estilo Alibaba */}
+            <View style={styles.alibabaScanBtn}>
+              <Ionicons name="scan-outline" size={13} color="#374151" />
             </View>
+            {/* Botón Favorito superior derecho */}
             <TouchableOpacity style={styles.favBtn} onPress={onFavorito}>
-              <Ionicons name={esFavorito ? 'heart' : 'heart-outline'} size={17} color={esFavorito ? colors.error : '#fff'} />
+              <Ionicons name={esFavorito ? 'heart' : 'heart-outline'} size={15} color={esFavorito ? colors.error : '#4b5563'} />
             </TouchableOpacity>
             {producto.destacado && (
-              <Badge variant="gold" size="sm" label="TOP" style={styles.badgeStar} />
+              <View style={styles.expressBadge}>
+                <Text style={styles.expressTxt}>Gobernación Express</Text>
+              </View>
             )}
           </View>
+
+          {/* CUERPO Y TITULO ALIBABA */}
           <View style={styles.cardBody}>
             <Text style={styles.cardCat}>{producto.categoria_nombre}</Text>
             <Text style={styles.cardNombre} numberOfLines={2}>{producto.nombre}</Text>
-            <View style={styles.cardEmpRow}>
-              <View style={styles.cardEmpDot} />
-              <Text style={styles.cardEmp} numberOfLines={1}>{producto.nombre_empresa}</Text>
+            
+            <View style={styles.alibabaFeatureRow}>
+              <Ionicons name="checkmark-circle" size={13} color="#16a34a" />
+              <Text style={styles.alibabaFeatureTxt} numberOfLines={1}>Trato directo · {producto.nombre_empresa}</Text>
+            </View>
+
+            <View style={styles.alibabaBottomPriceRow}>
+              <Text style={styles.alibabaUnitPrecio}>Bs {precioMin.toFixed(2)} / {producto.unidad || 'und.'}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -416,11 +539,26 @@ const styles = StyleSheet.create({
   veriTxt: { ...typography.small, color: '#fff', fontWeight: '700' },
 
   // Busqueda
-  searchWrap: { paddingHorizontal: spacing.lg, marginTop: -18, marginBottom: spacing.lg },
+  searchWrap: { paddingHorizontal: spacing.lg, marginTop: -18, marginBottom: spacing.md },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radius.xl, paddingHorizontal: spacing.lg, height: 54, ...shadows.green },
   searchInput: { flex: 1, ...typography.body, color: colors.textPrimary },
   searchBtn: { borderRadius: radius.md, overflow: 'hidden' },
   searchBtnGrad: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+
+  // Banner Productor Home
+  productorBannerBox: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+  productorBannerGrad: { borderRadius: 20, padding: 20, ...shadows.heavy },
+  productorBannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  productorBannerTag: { backgroundColor: 'rgba(255, 255, 255, 0.22)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.4)' },
+  productorBannerTagTxt: { color: '#ffffff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  productorBannerEmoji: { fontSize: 28 },
+  productorBannerTitle: { fontSize: 20, fontWeight: '900', color: '#ffffff', marginBottom: 6, lineHeight: 26 },
+  productorBannerSub: { fontSize: 13, color: 'rgba(255, 255, 255, 0.88)', lineHeight: 19, fontWeight: '500', marginBottom: 16 },
+  productorBannerBtns: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
+  productorBtnAction: { backgroundColor: '#ffffff', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 14, ...shadows.light },
+  productorBtnActionTxt: { color: '#14532d', fontSize: 13, fontWeight: '800' },
+  productorBtnInfo: { backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.6)', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14 },
+  productorBtnInfoTxt: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 
   // Estadisticas
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.xs, gap: spacing.sm },
@@ -442,22 +580,44 @@ const styles = StyleSheet.create({
   lista: { paddingHorizontal: spacing.xs + 2, paddingBottom: 130 },
   row: { justifyContent: 'space-between', paddingHorizontal: spacing.sm + 2 },
 
-  // Card Vertical
-  card: { width: '48.5%', backgroundColor: colors.white, borderRadius: radius.xl, marginBottom: spacing.lg, overflow: 'hidden', ...shadows.light },
-  cardImgWrap: { position: 'relative', height: 160 },
+  // Alibaba Top Nav Bar (Web)
+  alibabaTopNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', paddingHorizontal: spacing.xl, paddingVertical: 10, flexWrap: 'wrap', gap: spacing.md },
+  alibabaTopLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' },
+  alibabaTopRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' },
+  alibabaTopLinkWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  alibabaTopLinkTxt: { fontSize: 13, color: '#4b5563' },
+  alibabaTopLinkTxtBold: { fontSize: 13, color: '#111827', fontWeight: '700' },
+  alibabaTopFlagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  alibabaTopAuthBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ff6a00', paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill },
+  alibabaTopAuthTxt: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+
+  // Card Vertical (Alibaba style)
+  card: { flex: 1, minWidth: Platform.OS === 'web' ? 220 : 165, maxWidth: Platform.OS === 'web' ? 290 : '48.5%', backgroundColor: '#ffffff', borderRadius: 14, marginBottom: spacing.lg, overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0', ...shadows.medium },
+  cardHeaderAlibaba: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: '#ffffff' },
+  priceRangeTxt: { fontSize: 17, fontWeight: '900', color: '#111827', letterSpacing: -0.3 },
+  moqSoldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
+  moqTxt: { fontSize: 11, color: '#4b5563', fontWeight: '600' },
+  soldTxt: { fontSize: 11, color: '#6b7280' },
+  verifiedRow: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  verifiedIconBadge: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#0066ff', justifyContent: 'center', alignItems: 'center' },
+  verifiedTxt: { fontSize: 11, fontWeight: '800', color: '#0066ff', marginLeft: 4 },
+  yearsCountryTxt: { fontSize: 11, color: '#6b7280', fontWeight: '500' },
+
+  cardImgWrap: { position: 'relative', width: '100%', aspectRatio: 1, backgroundColor: '#f8fafc', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f1f5f9' },
   cardImg: { width: '100%', height: '100%' },
-  cardImgEmpty: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primaryTint },
-  cardImgGrad: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 },
-  cardPrecioFloat: { position: 'absolute', bottom: spacing.sm, left: spacing.sm, backgroundColor: colors.primary, borderRadius: radius.sm, paddingHorizontal: spacing.sm + 1, paddingVertical: spacing.xs + 1 },
-  cardPrecioTxt: { color: '#fff', ...typography.tiny, fontWeight: '800' },
-  favBtn: { position: 'absolute', top: spacing.sm, right: spacing.sm, width: 32, height: 32, borderRadius: 16, backgroundColor: colors.overlayLight, justifyContent: 'center', alignItems: 'center' },
-  badgeStar: { position: 'absolute', top: spacing.sm, left: spacing.sm },
-  cardBody: { padding: spacing.md },
-  cardCat: { ...typography.tiny, color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.9 },
-  cardNombre: { ...typography.captionBold, color: colors.textPrimary, marginTop: spacing.xs, lineHeight: 18 },
-  cardEmpRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm - 1, gap: 5 },
-  cardEmpDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.primary },
-  cardEmp: { ...typography.small, color: colors.textMuted, flex: 1 },
+  cardImgEmpty: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' },
+  alibabaScanBtn: { position: 'absolute', bottom: spacing.sm, left: spacing.sm, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', ...shadows.light },
+  favBtn: { position: 'absolute', top: spacing.sm, right: spacing.sm, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center', ...shadows.light },
+  expressBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: '#ff6a00', borderRadius: radius.xs, paddingHorizontal: 6, paddingVertical: 3 },
+  expressTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
+
+  cardBody: { padding: spacing.md, flex: 1, justifyContent: 'space-between' },
+  cardCat: { fontSize: 10, color: colors.primary, textTransform: 'uppercase', fontWeight: '700', letterSpacing: 0.8 },
+  cardNombre: { fontSize: 13, fontWeight: '700', color: '#111827', marginTop: 3, lineHeight: 18 },
+  alibabaFeatureRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
+  alibabaFeatureTxt: { fontSize: 11, color: '#4b5563', flex: 1 },
+  alibabaBottomPriceRow: { marginTop: spacing.sm, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  alibabaUnitPrecio: { fontSize: 12, fontWeight: '800', color: '#16a34a' },
 
   // Card Horizontal
   cardH: { width: 178, height: 148, borderRadius: radius.xl, overflow: 'hidden', ...shadows.medium },

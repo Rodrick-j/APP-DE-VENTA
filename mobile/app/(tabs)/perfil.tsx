@@ -1,9 +1,10 @@
 // app/(tabs)/perfil.tsx
-// Pantalla de perfil — diseño premium con theme centralizado
+// Pantalla de Perfil - Panel Ejecutivo B2B y Consumidor (Diseño Premium)
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, Image, StatusBar,
+  ScrollView, StatusBar,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -13,6 +14,9 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, spacing, radius, shadows, gradients } from '../../lib/theme'
 import { Avatar, Badge, Button, Card } from '../../components/ui'
+
+const VERDE_GOBERNACION = '#15803d'
+const DORADO_PREMIUM = '#b45309'
 
 export default function PerfilScreen() {
   const { user, perfil, signOut } = useAuthStore()
@@ -35,181 +39,215 @@ export default function PerfilScreen() {
     signOut()
   }
 
-  // Sin sesión — pantalla de acceso
+  // --- VISTA: SIN SESIÓN INICIADA ---
   if (!user || !perfil) {
     return (
       <View style={styles.sinSesionContainer}>
         <StatusBar barStyle="light-content" />
-        <LinearGradient colors={gradients.headerProfile} style={styles.sinSesionGrad}>
+        <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.sinSesionGrad}>
+          
+          <View style={styles.decoCircleAuth} />
+          
           <View style={styles.sinSesionIcono}>
-            <Ionicons name="person" size={48} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="shield-checkmark" size={54} color="#f8fafc" />
           </View>
-          <Text style={styles.sinSesionTitulo}>Tu perfil</Text>
-          <Text style={styles.sinSesionSub}>Inicia sesión para ver tu perfil y acceder a todas las funciones</Text>
+          
+          <Text style={styles.sinSesionTitulo}>Acceso B2B Oruro</Text>
+          <Text style={styles.sinSesionSub}>
+            Únete a la red oficial de productores y consumidores de la Gobernación de Oruro.
+          </Text>
 
-          <Button
-            variant="primary"
-            label="Iniciar sesión"
-            onPress={() => router.push('/(auth)/login')}
-            fullWidth
-            gradient={[colors.white, colors.white]}
-            style={{ marginBottom: spacing.md }}
-            textStyle={{ color: colors.primary }}
-          />
-          <Button
-            variant="outline"
-            label="Crear cuenta gratis"
-            onPress={() => router.push('/(auth)/registro')}
-            fullWidth
-            style={{ borderColor: 'rgba(255,255,255,0.5)' }}
-            textStyle={{ color: '#fff' }}
-          />
+          <View style={styles.authBtnGroup}>
+            <Button
+              variant="primary"
+              label="Iniciar Sesión"
+              onPress={() => router.push('/(auth)/login')}
+              fullWidth
+              gradient={['#16a34a', '#15803d']}
+              style={{ marginBottom: spacing.md, shadowColor: '#16a34a', shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 }}
+              textStyle={{ color: '#fff', fontWeight: '800' }}
+            />
+            <Button
+              variant="outline"
+              label="Registrarme Gratis"
+              onPress={() => router.push('/(auth)/registro')}
+              fullWidth
+              style={{ borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.05)' }}
+              textStyle={{ color: '#fff', fontWeight: '700' }}
+            />
+          </View>
         </LinearGradient>
       </View>
     )
   }
 
+  const esProductor = perfil.rol === 'productor'
   const inicialNombre = (perfil.nombre_completo ?? user.email ?? 'U')[0].toUpperCase()
 
+  // --- VISTA: PERFIL USUARIO/PRODUCTOR ---
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header con gradiente */}
+      {/* HEADER EJECUTIVO (Gradiente Premium) */}
       <LinearGradient
-        colors={gradients.headerProfile}
+        colors={esProductor ? ['#0f172a', '#1e293b'] : gradients.headerProfile}
         style={styles.header}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
-        {/* Decoración */}
         <View style={styles.decoCircle} />
+        <View style={styles.decoCircle2} />
 
         <View style={styles.headerContent}>
-          {/* Avatar */}
-          <Avatar
-            size="xl"
-            imageUrl={perfil.avatar_url}
-            name={perfil.nombre_completo ?? user.email}
-            ring
-            online
-          />
+          <View style={styles.avatarWrap}>
+            <Avatar
+              size="xl"
+              imageUrl={perfil.avatar_url}
+              name={perfil.nombre_completo ?? user.email}
+              ring
+              online
+            />
+            {esProductor && productor?.estado === 'verificado' && (
+              <View style={styles.verifiedBadgeAbsolute}>
+                <Ionicons name="checkmark-circle" size={24} color="#3b82f6" />
+              </View>
+            )}
+          </View>
 
-          <Text style={styles.nombre}>{perfil.nombre_completo ?? 'Usuario'}</Text>
+          <Text style={styles.nombre}>{perfil.nombre_completo ?? 'Usuario Oficial'}</Text>
           <Text style={styles.email}>{user.email}</Text>
 
-          <Badge
-            variant={perfil.rol === 'admin' ? 'info' : perfil.rol === 'productor' ? 'success' : 'default'}
-            size="md"
-            label={rolLabels[perfil.rol] ?? perfil.rol}
-            style={styles.rolBadge}
-          />
+          <View style={styles.badgesHeaderRow}>
+            <Badge
+              variant={perfil.rol === 'admin' ? 'info' : perfil.rol === 'productor' ? 'success' : 'default'}
+              size="md"
+              label={rolLabels[perfil.rol] ?? perfil.rol.toUpperCase()}
+              style={{ backgroundColor: esProductor ? '#16a34a' : 'rgba(255,255,255,0.2)' }}
+            />
+            {productor?.estado === 'verificado' && (
+              <Badge variant="warning" size="md" label="Sello Oruro" style={{ backgroundColor: DORADO_PREMIUM }} />
+            )}
+          </View>
         </View>
 
-        {/* Curva inferior */}
         <View style={styles.headerCurve} />
       </LinearGradient>
 
-      {/* Card productor */}
-      {perfil.rol === 'productor' && (
-        <Card variant="elevated" style={styles.productorCard}>
-          {!productor ? (
-            <TouchableOpacity
-              style={styles.productorBtn}
-              onPress={() => router.push('/productor/registrar')}
-            >
-              <View style={styles.productorBtnIcon}>
-                <Ionicons name="add-circle" size={22} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.productorBtnTitulo}>Completar perfil de productor</Text>
-                <Text style={styles.productorBtnSub}>Empieza a vender tus productos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          ) : (
-            <View>
-              <View style={styles.estadoRow}>
-                <Text style={styles.estadoLabel}>Estado:</Text>
-                <Badge
-                  variant={productor.estado === 'verificado' ? 'success' : productor.estado === 'pendiente' ? 'warning' : 'error'}
-                  size="sm"
-                  label={estadoLabels[productor.estado]}
-                />
-              </View>
-              {productor.estado === 'pendiente' && (
-                <Text style={styles.pendienteTxt}>
-                  Tu perfil está siendo revisado por la Gobernación. Te notificaremos cuando sea aprobado.
-                </Text>
-              )}
-              {productor.estado === 'verificado' && (
-                <View style={styles.statsRow}>
-                  <StatCard icon="cube" valor={productor.total_productos ?? 0} label="Productos" color={colors.primary} />
-                  <StatCard icon="eye" valor={productor.total_vistas ?? 0} label="Vistas" color={colors.blue} />
-                  <StatCard icon="heart" valor={0} label="Favoritos" color={colors.error} />
+
+      {/* PANEL B2B PRODUCTOR (Si es Productor) */}
+      {esProductor && (
+        <View style={styles.panelProductorContainer}>
+          <Text style={styles.menuSeccion}>🏢 Panel Empresarial (B2B)</Text>
+          
+          <Card variant="elevated" style={styles.productorCardVIP}>
+            {!productor ? (
+              <TouchableOpacity
+                style={styles.productorBtn}
+                onPress={() => router.push('/productor/registrar')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.productorBtnIcon}>
+                  <Ionicons name="business" size={26} color="#fff" />
                 </View>
-              )}
-            </View>
-          )}
-        </Card>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.productorBtnTitulo}>Vincular mi Empresa</Text>
+                  <Text style={styles.productorBtnSub}>Registra tu punto fijo GPS y catálogo para empezar a vender.</Text>
+                </View>
+                <Ionicons name="arrow-forward-circle" size={28} color="#15803d" />
+              </TouchableOpacity>
+            ) : (
+              <View>
+                <View style={styles.estadoRow}>
+                  <Text style={styles.estadoLabel}>Estado Institucional:</Text>
+                  <Badge
+                    variant={productor.estado === 'verificado' ? 'success' : productor.estado === 'pendiente' ? 'warning' : 'error'}
+                    size="sm"
+                    label={estadoLabels[productor.estado]}
+                  />
+                </View>
+
+                {productor.estado === 'pendiente' && (
+                  <View style={styles.pendienteBox}>
+                    <Ionicons name="time" size={20} color="#b45309" />
+                    <Text style={styles.pendienteTxt}>
+                      La Secretaría Departamental está revisando tu empresa. Pronto tendrás el Sello de Verificación.
+                    </Text>
+                  </View>
+                )}
+
+                {productor.estado === 'verificado' && (
+                  <View style={styles.statsDashboard}>
+                    <StatBox icon="cube" valor={productor.total_productos ?? 0} label="Productos" color={VERDE_GOBERNACION} />
+                    <View style={styles.statDiv} />
+                    <StatBox icon="eye" valor={productor.total_vistas ?? 0} label="Vistas" color="#2563eb" />
+                    <View style={styles.statDiv} />
+                    <StatBox icon="heart" valor={0} label="Favoritos" color="#e11d48" />
+                  </View>
+                )}
+
+                {/* Acciones Rápidas del Productor */}
+                {productor.estado === 'verificado' && (
+                  <View style={styles.productorQuickActions}>
+                    <TouchableOpacity style={styles.btnProductorAction} onPress={() => router.push('/productor/mis-productos')}>
+                      <Ionicons name="add-circle" size={20} color="#fff" />
+                      <Text style={styles.btnProductorActionTxt}>Subir Producto</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.btnProductorAction, { backgroundColor: '#f1f5f9' }]} onPress={() => {}}>
+                      <Ionicons name="storefront" size={20} color={VERDE_GOBERNACION} />
+                      <Text style={[styles.btnProductorActionTxt, { color: VERDE_GOBERNACION }]}>Mi Catálogo</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+          </Card>
+        </View>
       )}
 
-      {/* Menú */}
+
+      {/* MENÚ DE USUARIO (Consumidor y Configuración) */}
       <View style={styles.menuContainer}>
 
-        {/* Acciones productor */}
-        {perfil.rol === 'productor' && productor?.estado === 'verificado' && (
-          <>
-            <Text style={styles.menuSeccion}>Mi Negocio</Text>
-            <Card variant="elevated" style={styles.menuCard}>
-              <MenuItem icon="cube-outline" iconColor={colors.primary} iconBg={colors.primaryTint}
-                label="Mis productos" sub="Gestiona tu catálogo"
-                onPress={() => router.push('/productor/mis-productos')} />
-              <MenuItem icon="location-outline" iconColor={colors.blue} iconBg={colors.blueTint}
-                label="Mis puntos de venta" sub="Ubicaciones"
-                onPress={() => router.push('/productor/puntos-venta')} />
-              <MenuItem icon="chatbubble-outline" iconColor={colors.purple} iconBg={colors.purpleTint}
-                label="Mensajes recibidos" badge={0}
-                onPress={() => {}} last />
-            </Card>
-          </>
-        )}
-
-        <Text style={styles.menuSeccion}>Mi Cuenta</Text>
+        {/* Historial de Consumidor */}
+        <Text style={styles.menuSeccion}>🛍️ Mis Compras y Favoritos</Text>
         <Card variant="elevated" style={styles.menuCard}>
-          <MenuItem icon="person-outline" iconColor={colors.gold} iconBg={colors.goldTint}
-            label="Editar perfil"
-            onPress={() => {}} />
-          <MenuItem icon="notifications-outline" iconColor={colors.error} iconBg={colors.errorTint}
-            label="Notificaciones"
-            onPress={() => {}} last />
+          <MenuItem icon="heart" iconColor="#e11d48" iconBg="#ffe4e6"
+            label="Productos Guardados" sub="Tu lista de deseos" onPress={() => router.push('/(tabs)/favoritos')} />
+          <MenuItem icon="bag-check" iconColor="#0ea5e9" iconBg="#e0f2fe"
+            label="Historial de Pedidos" sub="Compras recientes" onPress={() => {}} last />
         </Card>
 
-        <Text style={styles.menuSeccion}>Información</Text>
+        <Text style={styles.menuSeccion}>⚙️ Configuración</Text>
         <Card variant="elevated" style={styles.menuCard}>
-          <MenuItem icon="shield-checkmark-outline" iconColor={colors.success} iconBg={colors.successTint}
-            label="Política de privacidad" onPress={() => {}} />
-          <MenuItem icon="document-text-outline" iconColor={colors.textTertiary} iconBg="#f9fafb"
-            label="Términos de uso" onPress={() => {}} />
-          <MenuItem icon="information-circle-outline" iconColor={colors.blue} iconBg={colors.blueTint}
-            label="Acerca de la app" onPress={() => {}} last />
+          <MenuItem icon="person" iconColor="#b45309" iconBg="#fef3c7"
+            label="Editar Datos Personales" onPress={() => {}} />
+          <MenuItem icon="notifications" iconColor="#8b5cf6" iconBg="#ede9fe"
+            label="Notificaciones" onPress={() => {}} />
+          <MenuItem icon="location" iconColor={VERDE_GOBERNACION} iconBg="#dcfce7"
+            label="Direcciones de Envío" onPress={() => {}} last />
         </Card>
 
-        {/* Cerrar sesión */}
-        <Button
-          variant="outline"
-          label="Cerrar sesión"
-          icon="log-out-outline"
-          onPress={handleSignOut}
-          fullWidth
-          style={styles.btnSignOut}
-          textStyle={{ color: colors.error }}
-        />
+        <Text style={styles.menuSeccion}>🛡️ Soporte e Información</Text>
+        <Card variant="elevated" style={styles.menuCard}>
+          <MenuItem icon="shield-checkmark" iconColor="#10b981" iconBg="#d1fae5"
+            label="Sello Oruro y Privacidad" onPress={() => {}} />
+          <MenuItem icon="headset" iconColor="#64748b" iconBg="#f1f5f9"
+            label="Centro de Soporte Oficial" onPress={() => {}} last />
+        </Card>
 
-        <View style={{ height: 100 }} />
+        {/* Botón Cerrar Sesión */}
+        <TouchableOpacity style={styles.btnSignOutWrap} onPress={handleSignOut} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={20} color="#e11d48" />
+          <Text style={styles.btnSignOutTxt}>Cerrar Sesión Segura</Text>
+        </TouchableOpacity>
+
       </View>
     </ScrollView>
   )
 }
+
+
+// --- COMPONENTES INTERNOS ---
 
 function MenuItem({ icon, iconColor, iconBg, label, sub, onPress, badge, last }: any) {
   return (
@@ -231,119 +269,100 @@ function MenuItem({ icon, iconColor, iconBg, label, sub, onPress, badge, last }:
             <Text style={styles.menuBadgeText}>{badge}</Text>
           </View>
         )}
-        <Ionicons name="chevron-forward" size={16} color={colors.border} />
+        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
       </View>
     </TouchableOpacity>
   )
 }
 
-function StatCard({ icon, valor, label, color }: any) {
+function StatBox({ icon, valor, label, color }: any) {
   return (
-    <View style={[styles.statCard, { borderTopColor: color }]}>
-      <Ionicons name={icon} size={22} color={color} />
-      <Text style={[styles.statValor, { color }]}>{valor}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.statBox}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <Ionicons name={icon} size={16} color={color} />
+        <Text style={styles.statBoxLabel}>{label}</Text>
+      </View>
+      <Text style={[styles.statBoxValor, { color }]}>{valor}</Text>
     </View>
   )
 }
 
 const rolLabels: Record<string, string> = {
-  'comprador': 'Comprador',
-  'productor': 'Productor',
-  'admin': 'Administrador',
-  'moderador': 'Moderador',
+  'comprador': 'CONSUMIDOR OFICIAL',
+  'productor': 'PRODUCTOR ORUREÑO',
+  'admin': 'ADMINISTRADOR',
+  'moderador': 'MODERADOR',
 }
 
 const estadoLabels: Record<string, string> = {
-  'pendiente': 'En revisión',
-  'verificado': 'Verificado',
-  'rechazado': 'Rechazado',
-  'suspendido': 'Suspendido',
+  'pendiente': 'EN REVISIÓN OFICIAL',
+  'verificado': 'VERIFICADO - SELLO ORURO',
+  'rechazado': 'RECHAZADO',
+  'suspendido': 'SUSPENDIDO',
 }
 
+// --- ESTILOS PROFESIONALES ---
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceGray },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
 
   // Sin sesión
   sinSesionContainer: { flex: 1 },
   sinSesionGrad: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xxxl },
-  sinSesionIcono: {
-    width: 110, height: 110, borderRadius: 55,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: spacing.xxl,
-  },
-  sinSesionTitulo: { ...typography.hero, color: '#fff', marginBottom: spacing.md },
-  sinSesionSub: { ...typography.body, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 21, marginBottom: spacing.xxxl },
+  decoCircleAuth: { position: 'absolute', top: -100, right: -50, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,255,255,0.03)' },
+  sinSesionIcono: { width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  sinSesionTitulo: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: spacing.sm, textAlign: 'center' },
+  sinSesionSub: { fontSize: 15, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, marginBottom: 40 },
+  authBtnGroup: { width: '100%', maxWidth: 350 },
 
-  // Header
-  header: { paddingTop: 54, paddingBottom: 60, position: 'relative', overflow: 'hidden' },
-  decoCircle: {
-    position: 'absolute', top: -60, right: -60,
-    width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-  headerContent: { alignItems: 'center', paddingHorizontal: spacing.xxl },
-  nombre: { ...typography.h2, color: '#fff', marginTop: spacing.lg },
-  email: { ...typography.caption, color: 'rgba(255,255,255,0.7)', marginTop: spacing.xs },
-  rolBadge: { marginTop: spacing.md },
-  headerCurve: {
-    position: 'absolute', bottom: -1, left: 0, right: 0,
-    height: 32, backgroundColor: colors.surfaceGray,
-    borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
-  },
+  // Header Perfil
+  header: { paddingTop: 65, paddingBottom: 50, position: 'relative', overflow: 'hidden' },
+  decoCircle: { position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)' },
+  decoCircle2: { position: 'absolute', bottom: -50, left: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.03)' },
+  headerContent: { alignItems: 'center', paddingHorizontal: spacing.xxl, zIndex: 2 },
+  avatarWrap: { position: 'relative', marginBottom: 12 },
+  verifiedBadgeAbsolute: { position: 'absolute', bottom: 0, right: -4, backgroundColor: '#fff', borderRadius: 12, padding: 2 },
+  nombre: { fontSize: 24, fontWeight: '900', color: '#fff', marginTop: 8 },
+  email: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4, fontWeight: '500' },
+  badgesHeaderRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  headerCurve: { position: 'absolute', bottom: -1, left: 0, right: 0, height: 25, backgroundColor: '#f8fafc', borderTopLeftRadius: 30, borderTopRightRadius: 30 },
 
-  // Productor card
-  productorCard: {
-    marginHorizontal: spacing.lg, marginTop: spacing.lg,
-  },
-  productorBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  productorBtnIcon: {
-    width: 42, height: 42, borderRadius: radius.md,
-    backgroundColor: colors.primaryTint, justifyContent: 'center', alignItems: 'center',
-  },
-  productorBtnTitulo: { ...typography.bodyMedium, color: colors.primary },
-  productorBtnSub: { ...typography.small, color: colors.textMuted, marginTop: spacing.xxs },
-  estadoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  estadoLabel: { ...typography.captionMedium, color: colors.textSecondary },
-  pendienteTxt: { ...typography.small, color: '#92400e', lineHeight: 18 },
-  statsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  statCard: {
-    flex: 1, backgroundColor: '#f9fafb', borderRadius: radius.md,
-    padding: spacing.md, alignItems: 'center', borderTopWidth: 3,
-  },
-  statValor: { fontSize: 22, fontWeight: '900', marginTop: spacing.xs, fontFamily: typography.h1.fontFamily },
-  statLabel: { ...typography.small, color: colors.textTertiary, marginTop: spacing.xxs },
+  // Panel Productor
+  panelProductorContainer: { paddingHorizontal: 16, marginTop: -15, zIndex: 10 },
+  productorCardVIP: { padding: 18, backgroundColor: '#ffffff', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  productorBtn: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  productorBtnIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: VERDE_GOBERNACION, justifyContent: 'center', alignItems: 'center', shadowColor: VERDE_GOBERNACION, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
+  productorBtnTitulo: { fontSize: 15, fontWeight: '800', color: '#0f172a' },
+  productorBtnSub: { fontSize: 12, color: '#64748b', marginTop: 3, lineHeight: 16 },
+  
+  estadoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  estadoLabel: { fontSize: 13, fontWeight: '700', color: '#475569' },
+  pendienteBox: { flexDirection: 'row', backgroundColor: '#fef3c7', padding: 12, borderRadius: 12, gap: 10, borderWidth: 1, borderColor: '#fde68a' },
+  pendienteTxt: { flex: 1, fontSize: 12, color: '#92400e', lineHeight: 18, fontWeight: '600' },
+  
+  statsDashboard: { flexDirection: 'row', backgroundColor: '#f8fafc', borderRadius: 14, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'space-between', alignItems: 'center' },
+  statBox: { flex: 1, alignItems: 'center' },
+  statDiv: { width: 1, height: 30, backgroundColor: '#cbd5e1' },
+  statBoxLabel: { fontSize: 11, fontWeight: '700', color: '#64748b' },
+  statBoxValor: { fontSize: 18, fontWeight: '900' },
 
-  // Menú
-  menuContainer: { paddingHorizontal: spacing.lg, marginTop: spacing.sm },
-  menuSeccion: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginTop: spacing.xxl - 4, marginBottom: spacing.sm, marginLeft: spacing.xs,
-  },
-  menuCard: {
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.lg,
-    borderBottomWidth: 1, borderBottomColor: colors.surfaceGray,
-    gap: spacing.md,
-  },
-  menuIconBox: {
-    width: 38, height: 38, borderRadius: radius.md,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  productorQuickActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  btnProductorAction: { flex: 1, flexDirection: 'row', backgroundColor: VERDE_GOBERNACION, paddingVertical: 12, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  btnProductorActionTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+  // Menú General
+  menuContainer: { paddingHorizontal: 16, marginTop: 16 },
+  menuSeccion: { fontSize: 14, fontWeight: '800', color: '#334155', marginTop: 24, marginBottom: 10, marginLeft: 6 },
+  menuCard: { overflow: 'hidden', borderRadius: 18, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', gap: 14 },
+  menuIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   menuItemCenter: { flex: 1 },
-  menuLabel: { ...typography.bodyMedium, color: colors.textPrimary },
-  menuSub: { ...typography.small, color: colors.textMuted, marginTop: spacing.xxs },
-  menuItemRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  menuBadge: {
-    backgroundColor: colors.error, borderRadius: radius.pill,
-    minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.sm,
-  },
-  menuBadgeText: { color: '#fff', ...typography.small, fontWeight: '700' },
+  menuLabel: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
+  menuSub: { fontSize: 12, color: '#64748b', marginTop: 3 },
+  menuItemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  menuBadge: { backgroundColor: '#e11d48', borderRadius: 12, minWidth: 22, height: 22, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6 },
+  menuBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
 
-  // Sign out
-  btnSignOut: { marginTop: spacing.xl, borderColor: colors.error + '40' },
+  btnSignOutWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 35, marginBottom: 20, paddingVertical: 14, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#fecdd3' },
+  btnSignOutTxt: { fontSize: 14, fontWeight: '800', color: '#e11d48' },
 })

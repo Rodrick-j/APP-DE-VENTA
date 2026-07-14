@@ -4,11 +4,12 @@
 import React, { useRef, useState, useEffect } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, Dimensions, StatusBar,
+  Animated, Dimensions, StatusBar, Platform,
 } from 'react-native'
 import { Video, ResizeMode } from 'expo-av'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import { colors, typography, radius } from '../lib/theme'
 
 const { width: W, height: H } = Dimensions.get('window')
 
@@ -18,35 +19,32 @@ interface Props {
 
 export default function IntroSplashScreen({ onFinish }: Props) {
   const videoRef = useRef<Video>(null)
-  const [progress, setProgress] = useState(0)      // 0-1
+  const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const [position, setPosition] = useState(0)
-  const fadeAnim = useRef(new Animated.Value(0)).current   // fade-in inicial
-  const exitAnim = useRef(new Animated.Value(1)).current   // fade-out al salir
-  const barAnim = useRef(new Animated.Value(0)).current    // barra de progreso
-  const skipPulse = useRef(new Animated.Value(1)).current  // pulso del botón skip
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const exitAnim = useRef(new Animated.Value(1)).current
+  const barAnim = useRef(new Animated.Value(0)).current
+  const skipPulse = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
-    // Fade-in de entrada suave
     Animated.timing(fadeAnim, {
       toValue: 1, duration: 800, useNativeDriver: true,
     }).start()
 
-    // Pulso del botón SALTAR
     Animated.loop(
       Animated.sequence([
-        Animated.timing(skipPulse, { toValue: 1.06, duration: 1000, useNativeDriver: true }),
-        Animated.timing(skipPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(skipPulse, { toValue: 1.05, duration: 1200, useNativeDriver: true }),
+        Animated.timing(skipPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
       ])
     ).start()
   }, [])
 
-  // Actualizar barra de progreso
   useEffect(() => {
     if (duration > 0) {
       Animated.timing(barAnim, {
         toValue: position / duration,
-        duration: 200,
+        duration: 250,
         useNativeDriver: false,
       }).start()
       setProgress(position / duration)
@@ -54,9 +52,8 @@ export default function IntroSplashScreen({ onFinish }: Props) {
   }, [position, duration])
 
   const handleFinish = () => {
-    // Fade-out cinematográfico antes de pasar a la app
     Animated.timing(exitAnim, {
-      toValue: 0, duration: 700, useNativeDriver: true,
+      toValue: 0, duration: 650, useNativeDriver: true,
     }).start(() => onFinish())
   }
 
@@ -69,16 +66,15 @@ export default function IntroSplashScreen({ onFinish }: Props) {
     <Animated.View style={[styles.root, { opacity: exitAnim }]}>
       <StatusBar hidden />
 
-      {/* VIDEO A PANTALLA COMPLETA */}
       <Animated.View style={[styles.videoWrap, { opacity: fadeAnim }]}>
         <Video
           ref={videoRef}
           source={require('../assets/video_bienvenida.mp4')}
           style={styles.video}
-          resizeMode={ResizeMode.COVER}         // Cubre toda la pantalla
+          resizeMode={ResizeMode.COVER}
           shouldPlay
           isLooping={false}
-          isMuted={false}                        // Con audio para mayor impacto
+          isMuted={false}
           onPlaybackStatusUpdate={status => {
             if (status.isLoaded) {
               setPosition(status.positionMillis ?? 0)
@@ -89,47 +85,53 @@ export default function IntroSplashScreen({ onFinish }: Props) {
         />
       </Animated.View>
 
-      {/* GRADIENTE SUPERIOR — para legibilidad del logo */}
       <LinearGradient
-        colors={['rgba(0,0,0,0.65)', 'transparent']}
+        colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.2)', 'transparent']}
         style={styles.gradTop}
       />
 
-      {/* GRADIENTE INFERIOR — para controles */}
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.75)']}
+        colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.88)']}
         style={styles.gradBottom}
       />
 
-      {/* LOGO Y TEXTO ARRIBA */}
-      <Animated.View style={[styles.logoArea, { opacity: fadeAnim }]}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoEmoji}>🛒</Text>
+      {/* HEADER OVERLAY — IDENTIDAD INSTITUCIONAL */}
+      <Animated.View style={[styles.headerOverlay, { opacity: fadeAnim }]}>
+        <View style={styles.institutionalBadge}>
+          <Ionicons name="shield-checkmark" size={16} color={colors.gold} style={{ marginRight: 6 }} />
+          <Text style={styles.badgeText}>GOBERNACIÓN DE ORURO • CONSUME LO NUESTRO</Text>
         </View>
-        <Text style={styles.logoTitle}>Consume lo Nuestro</Text>
-        <Text style={styles.logoSub}>Gobernación de Oruro</Text>
+
+        <View style={styles.logoRow}>
+          <View style={styles.logoIconCircle}>
+            <Ionicons name="storefront" size={32} color="#ffffff" />
+          </View>
+          <View style={styles.logoTextCol}>
+            <Text style={styles.logoTitle}>Consume lo Nuestro</Text>
+            <Text style={styles.logoSub}>★ Marketplace Regional Certificado</Text>
+          </View>
+        </View>
       </Animated.View>
 
-      {/* CONTROLES ABAJO */}
+      {/* BARRA DE PROGRESO Y BOTÓN SALTAR */}
       <View style={styles.controls}>
-        {/* Barra de progreso */}
         <View style={styles.progressBar}>
           <Animated.View style={[styles.progressFill, { width: barWidth }]} />
         </View>
 
         <View style={styles.controlsRow}>
-          {/* Tiempo restante */}
           <Text style={styles.timeText}>
-            {duration > 0
-              ? `0:${Math.max(0, Math.ceil((duration - position) / 1000)).toString().padStart(2, '0')}`
-              : '--'}
+            {Math.floor(position / 1000)}s / {Math.floor(duration / 1000)}s
           </Text>
 
-          {/* Botón SALTAR */}
           <Animated.View style={{ transform: [{ scale: skipPulse }] }}>
-            <TouchableOpacity style={styles.skipBtn} onPress={handleFinish} activeOpacity={0.8}>
-              <Text style={styles.skipTxt}>Saltar</Text>
-              <Ionicons name="play-skip-forward" size={14} color="#fff" />
+            <TouchableOpacity
+              style={styles.skipBtn}
+              onPress={handleFinish}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.skipTxt}>Omitir Introducción</Text>
+              <Ionicons name="arrow-forward-circle" size={18} color={colors.gold} />
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -140,82 +142,101 @@ export default function IntroSplashScreen({ onFinish }: Props) {
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute',
-    top: 0, left: 0,
-    width: W, height: H,
-    backgroundColor: '#000',
-    zIndex: 99999,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#052e18',
+    zIndex: 9999,
   },
   videoWrap: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
+    ...StyleSheet.absoluteFillObject,
   },
   video: {
     width: '100%',
     height: '100%',
   },
   gradTop: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 160,
+    position: 'absolute', top: 0, left: 0, right: 0, height: 160,
   },
   gradBottom: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: 180,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 180,
   },
-  logoArea: {
+  headerOverlay: {
     position: 'absolute',
-    top: 56,
-    left: 0, right: 0,
+    top: Platform.OS === 'web' ? 36 : 56,
+    left: 20, right: 20,
     alignItems: 'center',
   },
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: 'rgba(26,122,74,0.85)',
+  institutionalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    marginBottom: 14,
+  },
+  badgeText: {
+    ...typography.label,
+    color: '#ffffff',
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 },
+      android: { elevation: 4 },
+      web: { boxShadow: '0 6px 16px rgba(0,0,0,0.2)' as any }
+    })
+  },
+  logoIconCircle: {
+    width: 54, height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(26, 122, 74, 0.9)',
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  logoTextCol: {
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    shadowColor: '#1a7a4a',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 14,
   },
-  logoEmoji: { fontSize: 36 },
   logoTitle: {
+    ...typography.h1,
     fontSize: 22,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 0.2,
+    color: '#ffffff',
+    letterSpacing: -0.4,
   },
   logoSub: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-    fontWeight: '500',
+    ...typography.captionMedium,
+    color: colors.gold,
+    fontSize: 12,
+    marginTop: 2,
   },
   controls: {
     position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
+    bottom: Platform.OS === 'web' ? 30 : 42,
+    left: 24,
+    right: 24,
   },
   progressBar: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     borderRadius: 2,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#4ade80',
+    backgroundColor: colors.gold,
     borderRadius: 2,
   },
   controlsRow: {
@@ -224,24 +245,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeText: {
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'web' ? 'Inter, sans-serif' : 'Inter',
   },
   skipBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 24,
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    ...Platform.select({
+      ios: { shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
+      android: { elevation: 3 },
+      web: { boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)' as any }
+    })
   },
   skipTxt: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: Platform.OS === 'web' ? 'Inter, sans-serif' : 'Inter',
   },
 })

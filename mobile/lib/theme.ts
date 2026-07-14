@@ -71,25 +71,40 @@ export const colors = {
 const fontFamily = Platform.select({
   ios: 'Inter',
   android: 'Inter',
-  default: 'Inter',
+  web: 'Inter_400Regular, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  default: 'Inter_400Regular, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+})
+
+const fontFamilyMedium = Platform.select({
+  ios: 'Inter',
+  android: 'Inter',
+  web: 'Inter_600SemiBold, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  default: 'Inter_600SemiBold, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+})
+
+const fontFamilyBold = Platform.select({
+  ios: 'Inter',
+  android: 'Inter',
+  web: 'Inter_800ExtraBold, Inter_700Bold, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  default: 'Inter_800ExtraBold, Inter_700Bold, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 })
 
 export const typography: Record<string, TextStyle> = {
-  hero: { fontFamily, fontSize: 30, fontWeight: '900', letterSpacing: -0.5, lineHeight: 36 },
-  h1: { fontFamily, fontSize: 24, fontWeight: '800', letterSpacing: -0.3, lineHeight: 30 },
-  h2: { fontFamily, fontSize: 20, fontWeight: '700', letterSpacing: -0.2, lineHeight: 26 },
-  h3: { fontFamily, fontSize: 17, fontWeight: '700', letterSpacing: 0, lineHeight: 22 },
-  h4: { fontFamily, fontSize: 15, fontWeight: '700', letterSpacing: 0, lineHeight: 20 },
+  hero: { fontFamily: fontFamilyBold, fontSize: 32, fontWeight: '900', letterSpacing: -0.8, lineHeight: 38 },
+  h1: { fontFamily: fontFamilyBold, fontSize: 26, fontWeight: '800', letterSpacing: -0.5, lineHeight: 32 },
+  h2: { fontFamily: fontFamilyBold, fontSize: 21, fontWeight: '700', letterSpacing: -0.3, lineHeight: 28 },
+  h3: { fontFamily: fontFamilyBold, fontSize: 18, fontWeight: '700', letterSpacing: -0.2, lineHeight: 24 },
+  h4: { fontFamily: fontFamilyMedium, fontSize: 16, fontWeight: '600', letterSpacing: 0, lineHeight: 22 },
   bodyLarge: { fontFamily, fontSize: 16, fontWeight: '400', lineHeight: 24 },
   body: { fontFamily, fontSize: 15, fontWeight: '400', lineHeight: 22 },
-  bodyMedium: { fontFamily, fontSize: 15, fontWeight: '600', lineHeight: 22 },
-  bodyBold: { fontFamily, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  bodyMedium: { fontFamily: fontFamilyMedium, fontSize: 15, fontWeight: '600', lineHeight: 22 },
+  bodyBold: { fontFamily: fontFamilyBold, fontSize: 15, fontWeight: '700', lineHeight: 22 },
   caption: { fontFamily, fontSize: 13, fontWeight: '400', lineHeight: 18 },
-  captionMedium: { fontFamily, fontSize: 13, fontWeight: '600', lineHeight: 18 },
-  captionBold: { fontFamily, fontSize: 13, fontWeight: '700', lineHeight: 18 },
-  label: { fontFamily, fontSize: 11, fontWeight: '700', letterSpacing: 1, lineHeight: 16 },
-  small: { fontFamily, fontSize: 10, fontWeight: '600', letterSpacing: 0.5, lineHeight: 14 },
-  tiny: { fontFamily, fontSize: 9, fontWeight: '700', letterSpacing: 0.8, lineHeight: 12 },
+  captionMedium: { fontFamily: fontFamilyMedium, fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  captionBold: { fontFamily: fontFamilyBold, fontSize: 13, fontWeight: '700', lineHeight: 18 },
+  label: { fontFamily: fontFamilyBold, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, lineHeight: 16 },
+  small: { fontFamily: fontFamilyMedium, fontSize: 10, fontWeight: '600', letterSpacing: 0.6, lineHeight: 14 },
+  tiny: { fontFamily: fontFamilyBold, fontSize: 9, fontWeight: '700', letterSpacing: 0.8, lineHeight: 12 },
 } as const
 
 // ─── ESPACIADO ────────────────────────────────────────────
